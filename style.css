@@ -612,10 +612,22 @@ button:disabled {
 }
 
 .card-name {
+  flex: 1;
   font-size: 16px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 1px;
+}
+
+.card-level-badge {
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: white;
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.15);
 }
 
 .card-rarity-badge {
@@ -714,6 +726,12 @@ button:disabled {
 .card-sighting-val {
   font-size: 26px;
   font-weight: 800;
+}
+
+.card-sighting-maxlevel .card-sighting-val {
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  color: #ffd54f;
 }
 
 .card-attrs-title {

@@ -1,4 +1,6 @@
 import { jsonResponse, requireAuth, todayDateString } from "../../_shared/utils.js";
+import { loadAnimalsData } from "../../_shared/animals-data.js";
+import { levelForSightings, growStats } from "../../_shared/leveling.js";
 
 export async function onRequestGet(context) {
   const { request, env, params } = context;
@@ -73,11 +75,38 @@ export async function onRequestPost(context) {
     return row.species;
   }));
 
+  // speciesList entries are always distinct in practice (daily_sightings'
+  // primary key forbids logging the same species twice in one day), but
+  // dedupe defensively before batch-fetching old counts/stats by species.
+  const uniqueSpecies = [...new Set(speciesList)];
+  const placeholders = uniqueSpecies.map(function () {
+    return "?";
+  }).join(",");
+
+  const [oldCountRows, existingStatsRows, animalsData] = await Promise.all([
+    env.DB.prepare("SELECT species, count FROM sighting_counts WHERE username = ? AND species IN (" + placeholders + ")")
+      .bind(username, ...uniqueSpecies).all(),
+    env.DB.prepare("SELECT species, attack, defense, healing FROM animal_stats WHERE username = ? AND species IN (" + placeholders + ")")
+      .bind(username, ...uniqueSpecies).all(),
+    loadAnimalsData(env),
+  ]);
+
+  const oldCounts = {};
+  oldCountRows.results.forEach(function (row) {
+    oldCounts[row.species] = row.count;
+  });
+
+  const existingStats = {};
+  existingStatsRows.results.forEach(function (row) {
+    existingStats[row.species] = { attack: row.attack, defense: row.defense, healing: row.healing };
+  });
+
   const now = Date.now();
   const newlyUnlocked = [];
+  const levelUps = [];
   const statements = [];
 
-  speciesList.forEach(function (species) {
+  uniqueSpecies.forEach(function (species) {
     statements.push(
       env.DB.prepare(
         "INSERT INTO sighting_counts (username, species, count) VALUES (?, ?, 1) " +
@@ -98,9 +127,36 @@ export async function onRequestPost(context) {
           .bind(username, species, now)
       );
     }
+
+    const info = animalsData[species];
+    if (!info) {
+      return;
+    }
+
+    const oldCount = oldCounts[species] || 0;
+    const newCount = oldCount + 1;
+    const oldLevel = levelForSightings(oldCount, info.rarity);
+    const newLevel = levelForSightings(newCount, info.rarity);
+
+    if (newLevel !== null && newLevel > oldLevel) {
+      const baseStats = { attack: info.attack, defense: info.defense, healing: info.healing };
+      // Backfill any levels this species already had before it had an
+      // animal_stats row, then apply this submission's new level-up(s).
+      const startingStats = existingStats[species] || growStats(baseStats, info.rarity, 1, oldLevel);
+      const grownStats = growStats(startingStats, info.rarity, oldLevel, newLevel);
+
+      statements.push(
+        env.DB.prepare(
+          "INSERT INTO animal_stats (username, species, attack, defense, healing) VALUES (?, ?, ?, ?, ?) " +
+          "ON CONFLICT (username, species) DO UPDATE SET attack = excluded.attack, defense = excluded.defense, healing = excluded.healing"
+        ).bind(username, species, grownStats.attack, grownStats.defense, grownStats.healing)
+      );
+
+      levelUps.push({ species: species, oldLevel: oldLevel, newLevel: newLevel, stats: grownStats });
+    }
   });
 
   await env.DB.batch(statements);
 
-  return jsonResponse({ success: true, newlyUnlocked: newlyUnlocked });
+  return jsonResponse({ success: true, newlyUnlocked: newlyUnlocked, levelUps: levelUps });
 }

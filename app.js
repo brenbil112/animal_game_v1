@@ -1306,18 +1306,21 @@ let cachedHospital = [];
 let cachedUnlockedExtra = [];
 let cachedSightingCounts = {};
 let cachedDailyLog = { date: "", loggedSpecies: [] };
+let cachedAnimalStats = {};
 
 async function refreshCurrentUserCaches(username) {
   const results = await Promise.all([
     apiFetch("/hospital/" + username),
     apiFetch("/unlocked/" + username),
     apiFetch("/sightings/" + username),
+    apiFetch("/animal-stats/" + username),
   ]);
 
   cachedHospital = results[0];
   cachedUnlockedExtra = results[1];
   cachedSightingCounts = results[2].counts;
   cachedDailyLog = results[2].today;
+  cachedAnimalStats = results[3];
 }
 
 function isSpeciesInjured(species) {
@@ -1471,11 +1474,16 @@ function openAnimalCard(animal, isLocked) {
 
   const name = capitalize(animal.species);
   const rarityLabel = capitalize(animal.rarity);
+  const isVariant = animal.rarity === "variant";
+  const sightingCount = cachedSightingCounts[animal.species] || 0;
+  const level = levelForSightings(sightingCount, animal.rarity);
+  const levelBadge = isVariant ? "No Level" : "LVL " + level;
 
   front.innerHTML = `
     <div class="card-header-row">
       <div class="card-name">${name}</div>
       <div class="card-rarity-badge rarity-${animal.rarity}">${rarityLabel}</div>
+      ${isLocked ? "" : `<div class="card-level-badge">${levelBadge}</div>`}
     </div>
     <div class="card-picture-placeholder" id="card-picture-area">${name}<br>picture</div>
   `;
@@ -1498,11 +1506,13 @@ function openAnimalCard(animal, isLocked) {
       front.innerHTML += `<div class="card-injured-note">✚ Injured — recovering in the hospital</div>`;
     }
 
-    const sightingCount = cachedSightingCounts[animal.species] || 0;
     const statCap = STAT_CAP_BY_RARITY[animal.rarity] || 100;
+    const currentStats = cachedAnimalStats[animal.species] || animal;
+    const neededForNext = sightingsRequiredForNextLevel(sightingCount, animal.rarity);
+    const isMaxLevel = !isVariant && neededForNext === 0;
 
     const attrHtml = ["attack", "defense", "healing"].map(function (stat) {
-      const value = Math.min(100, Math.max(0, animal[stat]));
+      const value = Math.min(100, Math.max(0, currentStats[stat]));
       return `
         <div class="card-attr-row">
           <span class="card-attr-name">${capitalize(stat)}</span>
@@ -1510,10 +1520,19 @@ function openAnimalCard(animal, isLocked) {
             <div class="card-attr-bar-fill" style="width:${value}%"></div>
             <div class="card-attr-cap-line" style="left:${statCap}%" title="Max for ${rarityLabel}: ${statCap}"></div>
           </div>
-          <span class="card-attr-val">${animal[stat]}</span>
+          <span class="card-attr-val">${currentStats[stat]}</span>
         </div>
       `;
     }).join("");
+
+    const tilLevelUpHtml = isVariant
+      ? ""
+      : `
+        <div class="card-sighting-block${isMaxLevel ? " card-sighting-maxlevel" : ""}">
+          <div class="card-sighting-label">Til Level Up</div>
+          <div class="card-sighting-val">${isMaxLevel ? "MAX LEVEL" : neededForNext}</div>
+        </div>
+      `;
 
     front.innerHTML += `<button class="card-flip-button" id="flip-to-back-button">Flip to see stats &rarr;</button>`;
     back.innerHTML = `
@@ -1522,6 +1541,7 @@ function openAnimalCard(animal, isLocked) {
           <div class="card-sighting-label">Total Sightings</div>
           <div class="card-sighting-val">${sightingCount}</div>
         </div>
+        ${tilLevelUpHtml}
       </div>
       <div class="card-attrs-title">Attributes</div>
       ${attrHtml}
@@ -1614,6 +1634,41 @@ const STAT_CAP_BY_RARITY = {
   legendary: 100,
   variant: 100,
 };
+
+// Mirrors functions/_shared/leveling.js — cumulative sightings needed to
+// REACH levels 2-5 (the initial catch is level 1 and doesn't count).
+// Variant-rarity animals are excluded — they never level up.
+const LEVEL_THRESHOLDS = {
+  common: [10, 25, 100, 300],
+  uncommon: [5, 20, 50, 100],
+  rare: [3, 10, 25, 75],
+  epic: [2, 5, 10, 25],
+  legendary: [1, 3, 5, 10],
+};
+const MAX_LEVEL = 5;
+
+function levelForSightings(sightings, rarity) {
+  if (rarity === "variant") {
+    return null;
+  }
+  const thresholds = LEVEL_THRESHOLDS[rarity] || LEVEL_THRESHOLDS.common;
+  let level = 1;
+  for (let i = 0; i < thresholds.length; i++) {
+    if (sightings >= thresholds[i]) {
+      level = i + 2;
+    }
+  }
+  return Math.min(level, MAX_LEVEL);
+}
+
+function sightingsRequiredForNextLevel(sightings, rarity) {
+  const level = levelForSightings(sightings, rarity);
+  if (level === null || level >= MAX_LEVEL) {
+    return 0;
+  }
+  const thresholds = LEVEL_THRESHOLDS[rarity] || LEVEL_THRESHOLDS.common;
+  return Math.max(0, thresholds[level - 1] - sightings);
+}
 
 // ── Swarms ───────────────────────────────────────────────────────────────
 
@@ -1933,6 +1988,11 @@ document.getElementById("sightings-submit-button").addEventListener("click", asy
   let message = "Thanks for logging your daily sightings!";
   if (result.newlyUnlocked.length > 0) {
     message += " Congratulations, you've unlocked " + result.newlyUnlocked.map(capitalize).join(", ") + "!";
+  }
+  if (result.levelUps.length > 0) {
+    message += " " + result.levelUps.map(function (levelUp) {
+      return capitalize(levelUp.species) + " leveled up to level " + levelUp.newLevel + "!";
+    }).join(" ");
   }
   showInfoPopup("Daily Sightings", message);
 
