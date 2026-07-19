@@ -591,6 +591,24 @@ function getBattleById(war, battleId) {
   });
 }
 
+// A swarm slot stays editable right up until its war-map token gets pulled
+// into a battle — after that it's locked (returns the battle) until that
+// battle resolves, so players can't reshuffle animals out of a fight in
+// progress from the Wars tab.
+function findLockingBattle(war, username, swarmNumber) {
+  if (!war) {
+    return null;
+  }
+  const warSwarm = war.swarms.find(function (swarm) {
+    return swarm.owner === username && swarm.swarmNumber === swarmNumber && swarm.battleId;
+  });
+  if (!warSwarm) {
+    return null;
+  }
+  const battle = getBattleById(war, warSwarm.battleId);
+  return battle && !battle.resolved ? battle : null;
+}
+
 function battleWinner(battle) {
   const player1Alive = battle.animals.some(function (animal) {
     return animal.owner === battle.player1 && !animal.incapacitated;
@@ -1472,6 +1490,8 @@ function openAnimalCard(animal, isLocked) {
     front.innerHTML += `<div class="card-locked-note">🔒 Locked — keep exploring to find this one</div>`;
     back.innerHTML = "";
   } else {
+    front.innerHTML += `<div class="card-class-row">${capitalize(animal.class)}</div>`;
+
     // Injury is temporary and doesn't erase what you know about the animal —
     // only "locked" (never unlocked, no data) should hide stats.
     if (isInjured) {
@@ -1479,11 +1499,34 @@ function openAnimalCard(animal, isLocked) {
     }
 
     const sightingCount = cachedSightingCounts[animal.species] || 0;
+    const statCaps = getStatCapsByRarity()[animal.rarity] || { attack: 1, defense: 1, healing: 1 };
+
+    const attrHtml = ["attack", "defense", "healing"].map(function (stat) {
+      const value = animal[stat];
+      const cap = statCaps[stat] || value || 1;
+      const percent = Math.min(100, (value / cap) * 100);
+      return `
+        <div class="card-attr-row">
+          <span class="card-attr-name">${capitalize(stat)}</span>
+          <div class="card-attr-bar-wrap">
+            <div class="card-attr-bar-fill" style="width:${percent}%"></div>
+          </div>
+          <span class="card-attr-val">${value} / ${cap}</span>
+        </div>
+      `;
+    }).join("");
 
     front.innerHTML += `<button class="card-flip-button" id="flip-to-back-button">Flip to see stats &rarr;</button>`;
     back.innerHTML = `
-      <div class="card-back-placeholder">Sightings: ${sightingCount}<br>More stats coming soon...</div>
-      <button class="card-flip-button" id="flip-to-front-button">&larr; Flip back</button>
+      <div class="card-back-sightings">
+        <div class="card-sighting-block">
+          <div class="card-sighting-label">Total Sightings</div>
+          <div class="card-sighting-val">${sightingCount}</div>
+        </div>
+      </div>
+      <div class="card-attrs-title">Attributes (rarity max)</div>
+      ${attrHtml}
+      <button class="card-flip-button" style="margin-top:auto" id="flip-to-front-button">&larr; Flip back</button>
     `;
 
     document.getElementById("flip-to-back-button").addEventListener("click", function () {
@@ -1548,8 +1591,41 @@ async function ensureAnimalsLoaded() {
     })
     .map(function (line) {
       const parts = line.split(",");
-      return { species: parts[0], rarity: parts[1], starter: parts[5] === "yes" };
+      return {
+        species: parts[0],
+        rarity: parts[1],
+        class: parts[2],
+        attack: Number(parts[3]),
+        defense: Number(parts[4]),
+        healing: Number(parts[5]),
+        starter: parts[6] === "yes",
+      };
     });
+}
+
+// The per-rarity ceiling each stat reaches across the roster (e.g. attack
+// tops out around 60 for legendary, 4 for common) — there's no
+// leveling/training system here, so this just normalizes each animal's
+// fixed stats against its own tier's peers for the card's stat bars.
+let statCapsByRarity = null;
+
+function getStatCapsByRarity() {
+  if (statCapsByRarity) {
+    return statCapsByRarity;
+  }
+
+  statCapsByRarity = {};
+  animalsData.forEach(function (animal) {
+    if (!statCapsByRarity[animal.rarity]) {
+      statCapsByRarity[animal.rarity] = { attack: 0, defense: 0, healing: 0 };
+    }
+    const caps = statCapsByRarity[animal.rarity];
+    caps.attack = Math.max(caps.attack, animal.attack);
+    caps.defense = Math.max(caps.defense, animal.defense);
+    caps.healing = Math.max(caps.healing, animal.healing);
+  });
+
+  return statCapsByRarity;
 }
 
 // ── Swarms ───────────────────────────────────────────────────────────────
@@ -1581,12 +1657,17 @@ function findSwarmContaining(swarms, species, excludeSwarmNumber) {
 async function renderSwarmSlots() {
   const username = localStorage.getItem("loggedInUser");
   const swarms = await fetchSwarms(username);
+  const war = getActiveWar();
 
   document.querySelectorAll(".swarm-slot").forEach(function (slot) {
     const swarmNumber = slot.dataset.swarmNumber;
     const members = swarms[swarmNumber] || [];
     const summaryEl = slot.querySelector(".swarm-slot-summary");
-    summaryEl.textContent = members.length > 0 ? members.map(capitalize).join(", ") : "Empty";
+    const locked = !!findLockingBattle(war, username, swarmNumber);
+
+    const summaryText = members.length > 0 ? members.map(capitalize).join(", ") : "Empty";
+    summaryEl.textContent = locked ? summaryText + " 🔒 (in battle)" : summaryText;
+    slot.classList.toggle("swarm-slot-locked", locked);
   });
 }
 
@@ -1605,9 +1686,16 @@ function updateSwarmPickerSubtitle() {
 }
 
 async function openSwarmPicker(swarmNumber) {
-  pickerSwarmNumber = swarmNumber;
-
   const username = localStorage.getItem("loggedInUser");
+
+  await loadWarCache();
+  const lockingBattle = findLockingBattle(getActiveWar(), username, swarmNumber);
+  if (lockingBattle) {
+    showInfoPopup("Swarms", "Swarm " + swarmNumber + " is currently in a territory battle and can't be edited until it's resolved.");
+    return;
+  }
+
+  pickerSwarmNumber = swarmNumber;
 
   document.getElementById("swarm-picker-title").textContent = "Swarm " + swarmNumber;
 
@@ -1679,6 +1767,14 @@ function closeSwarmPicker() {
 
 document.getElementById("swarm-picker-save-button").addEventListener("click", async function () {
   const username = localStorage.getItem("loggedInUser");
+
+  await loadWarCache();
+  if (findLockingBattle(getActiveWar(), username, pickerSwarmNumber)) {
+    showInfoPopup("Swarms", "Swarm " + pickerSwarmNumber + " entered a battle while this was open and can no longer be edited.");
+    closeSwarmPicker();
+    return;
+  }
+
   const result = await saveSwarmSlot(username, pickerSwarmNumber, pickerSelectedSpecies);
 
   if (!result.success) {

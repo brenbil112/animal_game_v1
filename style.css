@@ -199,6 +199,12 @@ button:disabled {
   color: #ccc;
 }
 
+.swarm-slot-locked {
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-color: #a55;
+}
+
 #swarm-picker-overlay {
   position: fixed;
   inset: 0;
@@ -673,11 +679,83 @@ button:disabled {
   font-size: 0.9rem;
 }
 
-.card-back-placeholder {
+.card-class-row {
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 12px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 8px;
+}
+
+.card-back-sightings {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.card-sighting-block {
   flex: 1;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 4px;
+}
+
+.card-sighting-label {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2px;
+}
+
+.card-sighting-val {
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.card-attrs-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: rgba(255, 255, 255, 0.5);
+  margin-bottom: 5px;
+}
+
+.card-attr-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: rgba(255, 255, 255, 0.5);
-  font-style: italic;
+  gap: 6px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  font-size: 12px;
+}
+
+.card-attr-name {
+  color: rgba(255, 255, 255, 0.85);
+  flex: 0 0 52px;
+}
+
+.card-attr-bar-wrap {
+  position: relative;
+  flex: 1;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.card-attr-bar-fill {
+  height: 100%;
+  background: #3ddc6f;
+}
+
+.card-attr-val {
+  font-weight: 700;
+  min-width: 44px;
+  text-align: right;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.8);
 }

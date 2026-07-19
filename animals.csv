@@ -1,68 +1,68 @@
-species,rarity,class,attack,defense,starter
-mosquito,common,conscript,,,yes
-ant,common,conscript,,,yes
-crow,common,conscript,,,yes
-spider,common,conscript,,,yes
-pigeon,common,conscript,,,yes
-house fly,common,conscript,,,yes
-dog,common,scout,,,no
-cat,common,ranger,,,no
-blue jay,common,healer,,,no
-gray squirrel,common,conscript,,,no
-robin,common,healer,,,no
-cardinal,common,healer,,,no
-mud dauber,common,soldier,,,no
-lizard,common,conscript,,,no
-bumblebee,common,ranger,,,no
-yellowjacket,common,soldier,,,no
-fruit fly,common,conscript,,,no
-canada goose,common,healer,,,no
-deer,uncommon,scout,,,no
-raccoon,uncommon,soldier,,,no
-turkey,uncommon,ranger,,,no
-great blue heron,uncommon,ranger,,,no
-iguana,uncommon,healer,,,no
-gopher tortoise,uncommon,lancer,,,no
-sandhill crane,uncommon,ranger,,,no
-cottontail rabbit,uncommon,conscript,,,no
-mouse,uncommon,conscript,,,no
-osprey,uncommon,ranger,,,no
-fiddler crab,uncommon,soldier,,,no
-mangrove tree crab,uncommon,lancer,,,no
-hermit crab,uncommon,soldier,,,no
-turkey vulture,uncommon,ranger,,,no
-chicken turtle,uncommon,lancer,,,no
-black racer,uncommon,soldier,,,no
-box turtle,uncommon,lancer,,,no
-white ibis,uncommon,healer,,,no
-bottlenose dolphin,rare,scout,,,no
-spoonbill,rare,,,,no
-armadillo,rare,,,,no
-alligator,rare,,,,no
-bald eagle,rare,,,,no
-fox,rare,,,,no
-opossum,rare,,,,no
-manatee,rare,,,,no
-coyote,rare,,,,no
-great horned owl,rare,,,,no
-barred owl,rare,,,,no
-softshell turtle,rare,lancer,,,no
-kestrel,rare,healer,,,no
-wild boar,epic,lancer,,,no
-bobcat,epic,scout,,,no
-black bear,epic,lancer,,,no
-water mocassin,epic,soldier,,,no
-river otter,epic,soldier,,,no
-barn owl,epic,soldier,,,no
-golden eagle,epic,scout,,,no
-crested caracara,epic,healer,,,no
-alligator snapping turtle,epic,lancer,,,no
-panther,legendary,ranger,,,no
-crocodile,legendary,lancer,,,no
-corgi,variant,scout,,,no
-aussie,variant,ranger,,,no
-pit bull,variant,lancer,,,no
-gecko,variant,conscript,,,no
-huntsman spider,variant,lancer,,,no
-black widow spider,variant,scout,,,no
-marsh rabbit,variant,conscript,,,no
+species,rarity,class,attack,defense,healing,starter
+mosquito,common,conscript,2,2,1,yes
+ant,common,conscript,2,2,1,yes
+crow,common,conscript,3,3,1,yes
+spider,common,conscript,2,2,2,yes
+pigeon,common,conscript,2,3,1,yes
+house fly,common,conscript,2,1,2,yes
+dog,common,scout,3,4,1,no
+cat,common,ranger,4,2,2,no
+blue jay,common,healer,3,1,3,no
+gray squirrel,common,conscript,2,2,2,no
+robin,common,healer,2,1,3,no
+cardinal,common,healer,1,2,4,no
+mud dauber,common,soldier,4,1,1,no
+lizard,common,conscript,2,2,1,no
+bumblebee,common,ranger,2,3,2,no
+yellowjacket,common,soldier,4,1,1,no
+fruit fly,common,conscript,1,2,1,no
+canada goose,common,healer,3,2,4,no
+deer,uncommon,scout,5,5,4,no
+raccoon,uncommon,soldier,3,7,2,no
+turkey,uncommon,ranger,4,4,3,no
+great blue heron,uncommon,ranger,6,3,1,no
+iguana,uncommon,healer,4,4,8,no
+gopher tortoise,uncommon,tank,2,8,4,no
+sandhill crane,uncommon,ranger,9,3,2,no
+cottontail rabbit,uncommon,conscript,4,4,4,no
+mouse,uncommon,conscript,3,4,4,no
+osprey,uncommon,ranger,9,5,2,no
+fiddler crab,uncommon,soldier,3,6,3,no
+mangrove tree crab,uncommon,tank,4,5,2,no
+hermit crab,uncommon,soldier,3,8,2,no
+turkey vulture,uncommon,ranger,6,4,1,no
+chicken turtle,uncommon,tank,2,8,3,no
+black racer,uncommon,soldier,8,4,2,no
+box turtle,uncommon,tank,2,8,4,no
+white ibis,uncommon,healer,3,4,7,no
+bottlenose dolphin,rare,scout,12,7,6,no
+spoonbill,rare,ranger,8,8,5,no
+armadillo,rare,tank,5,13,5,no
+alligator,rare,tank,12,11,5,no
+bald eagle,rare,soldier,15,7,5,no
+fox,rare,healer,6,5,14,no
+opossum,rare,ranger,7,5,13,no
+manatee,rare,tank,4,13,9,no
+coyote,rare,soldier,10,8,5,no
+great horned owl,rare,ranger,12,7,6,no
+barred owl,rare,ranger,14,9,5,no
+softshell turtle,rare,tank,5,14,6,no
+kestrel,rare,healer,10,5,13,no
+wild boar,epic,tank,20,17,10,no
+bobcat,epic,scout,26,13,12,no
+black bear,epic,tank,25,22,10,no
+water mocassin,epic,soldier,29,15,11,no
+river otter,epic,healer,12,15,28,no
+barn owl,epic,soldier,22,19,15,no
+golden eagle,epic,scout,28,14,12,no
+crested caracara,epic,ranger,23,23,13,no
+alligator snapping turtle,epic,tank,19,30,10,no
+panther,legendary,ranger,60,52,30,no
+crocodile,legendary,tank,52,56,30,no
+corgi,variant,scout,12,14,10,no
+aussie,variant,ranger,15,10,12,no
+pit bull,variant,tank,15,15,10,no
+gecko,variant,conscript,11,15,12,no
+huntsman spider,variant,tank,13,14,11,no
+black widow spider,variant,scout,18,11,12,no
+marsh rabbit,variant,healer,11,11,17,no
