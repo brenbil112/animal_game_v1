@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Animal Kingdom</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div id="login-screen" class="screen">
+    <h1>Animal Kingdom</h1>
+    <form id="login-form">
+      <input type="text" id="username-input" placeholder="Enter username" autocomplete="off">
+      <button type="submit">Log In</button>
+    </form>
+    <p id="login-error" class="error hidden">Invalid login</p>
+  </div>
+
+  <div id="home-screen" class="screen hidden">
+    <h1>Animal Kingdom</h1>
+    <div class="user-bar">
+      <span class="welcome-message"></span>
+      <button class="logout-button">Log Out</button>
+    </div>
+
+    <div class="big-nav-buttons">
+      <button class="big-nav-button" id="home-wars-button">Active Wars</button>
+      <button class="big-nav-button" id="home-animals-button">Animals</button>
+      <button class="big-nav-button" disabled>Home City</button>
+      <button class="big-nav-button hidden" id="home-admin-button">Admin</button>
+    </div>
+  </div>
+
+  <div id="admin-screen" class="screen hidden">
+    <h1>Admin</h1>
+    <div class="user-bar">
+      <span class="welcome-message"></span>
+      <button class="logout-button">Log Out</button>
+    </div>
+
+    <p id="war-status">No active war yet.</p>
+
+    <div class="big-nav-buttons">
+      <button class="big-nav-button" id="start-war-button">Start/Reset War: user1 vs user2</button>
+    </div>
+
+    <div id="admin-map-trigger" class="map-trigger"></div>
+
+    <button id="admin-back-button" class="back-button-style">Back</button>
+  </div>
+
+  <div id="section-screen" class="screen hidden">
+    <header id="section-header">
+      <h1 id="app-title">Animal Kingdom</h1>
+      <nav class="section-nav">
+        <button class="section-nav-button" id="nav-wars-button">Wars</button>
+        <button class="section-nav-button" id="nav-animals-button">Animals</button>
+        <button class="section-nav-button" disabled>City</button>
+      </nav>
+      <div class="user-bar">
+        <span class="welcome-message"></span>
+        <button class="logout-button">Log Out</button>
+      </div>
+    </header>
+
+    <div id="wars-panel" class="content-panel hidden">
+      <h2>Your Swarms</h2>
+      <p class="panel-subtitle">Click a swarm to choose up to 3 animals for it.</p>
+      <div class="swarm-slots">
+        <button class="swarm-slot" data-swarm-number="1">
+          <span class="swarm-slot-title">Swarm 1</span>
+          <span class="swarm-slot-summary">Empty</span>
+        </button>
+        <button class="swarm-slot" data-swarm-number="2">
+          <span class="swarm-slot-title">Swarm 2</span>
+          <span class="swarm-slot-summary">Empty</span>
+        </button>
+        <button class="swarm-slot" data-swarm-number="3">
+          <span class="swarm-slot-title">Swarm 3</span>
+          <span class="swarm-slot-summary">Empty</span>
+        </button>
+      </div>
+
+      <h2>Active War Map</h2>
+      <div id="wars-map-trigger" class="map-trigger"></div>
+
+      <div class="big-nav-buttons">
+        <button class="big-nav-button" id="show-hospital-button">🏥 Hospital</button>
+      </div>
+    </div>
+
+    <div id="hospital-panel" class="content-panel hidden">
+      <h2>Hospital</h2>
+      <p class="panel-subtitle">Animals recover here for 72 hours after being defeated in a skirmish.</p>
+      <div id="hospital-list"></div>
+    </div>
+
+    <div id="animals-home-panel" class="content-panel hidden">
+      <div class="big-nav-buttons">
+        <button class="big-nav-button" id="show-unlocked-button">Unlocked Animals</button>
+        <button class="big-nav-button" id="show-locked-button">Locked Animals</button>
+        <button class="big-nav-button" id="show-sightings-button">Log Daily Sightings</button>
+      </div>
+    </div>
+
+    <div id="unlocked-animals-panel" class="content-panel hidden">
+      <div id="unlocked-animals-list">Loading animals...</div>
+    </div>
+
+    <div id="locked-animals-panel" class="content-panel hidden">
+      <div id="locked-animals-list">Loading animals...</div>
+    </div>
+
+    <div id="log-sightings-panel" class="content-panel hidden">
+      <h2>Log Daily Sightings</h2>
+      <p class="panel-subtitle" id="sightings-subtitle">Select up to 3 animals you spotted today.</p>
+      <div id="sightings-grid" class="animal-grid"></div>
+      <button id="sightings-submit-button" class="big-nav-button">Log Sightings</button>
+      <p id="sightings-timer" class="turn-status hidden"></p>
+    </div>
+
+    <button id="back-button" class="back-button-style">Back</button>
+  </div>
+
+  <div id="card-modal" class="hidden">
+    <div id="card-modal-backdrop"></div>
+    <div id="card-scene-wrapper">
+      <button id="card-close-button" title="Close">✕</button>
+      <div class="card-scene">
+        <div class="flip-card" id="the-flip-card">
+          <div class="card-face card-front" id="card-front-face"></div>
+          <div class="card-face card-back" id="card-back-face"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="swarm-picker-overlay" class="hidden">
+    <div id="swarm-picker-backdrop"></div>
+    <div id="swarm-picker-content">
+      <h3 id="swarm-picker-title">Swarm 1</h3>
+      <p class="panel-subtitle" id="swarm-picker-subtitle">Choose up to 3 animals (0/3 selected).</p>
+      <div id="swarm-picker-list" class="animal-grid"></div>
+      <div class="swarm-picker-actions">
+        <button id="swarm-picker-save-button" class="big-nav-button">Save</button>
+        <button id="swarm-picker-cancel-button" class="back-button-style">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="war-map-overlay" class="hidden">
+    <h2 id="war-map-overlay-heading"></h2>
+    <p id="war-turn-status" class="turn-status"></p>
+    <div id="war-map-grid" class="map-grid"></div>
+    <div class="map-overlay-actions">
+      <button id="war-end-turn-button" class="back-button-style">End Turn</button>
+      <button id="war-map-minimize-button" class="back-button-style" title="Minimize">🗕 Minimize</button>
+    </div>
+  </div>
+
+  <div id="battle-overlay" class="hidden">
+    <h2 id="battle-overlay-heading"></h2>
+    <p id="battle-turn-status" class="turn-status"></p>
+    <p id="battle-phase-hint" class="turn-status"></p>
+    <div id="battle-map-grid" class="map-grid"></div>
+    <div id="battle-action-panel" class="hidden">
+      <button class="battle-action-button" data-action="attack">Attack</button>
+      <button class="battle-action-button" data-action="ranged-attack">Ranged Attack</button>
+      <button class="battle-action-button" data-action="set-ambush">Set Ambush</button>
+      <button class="battle-action-button" data-action="end-ambush">End Ambush</button>
+      <button class="battle-action-button" data-action="scout">Scout</button>
+      <button class="battle-action-button" id="battle-no-action-button">No Action</button>
+    </div>
+    <div class="map-overlay-actions">
+      <button id="battle-end-turn-button" class="back-button-style">End Turn</button>
+      <button id="battle-zoom-out-button" class="back-button-style" title="Zoom Out">🔍 Zoom Out</button>
+    </div>
+  </div>
+
+  <div id="info-popup-overlay" class="hidden">
+    <div id="info-popup-backdrop"></div>
+    <div id="info-popup-content">
+      <h3 id="info-popup-heading"></h3>
+      <p id="info-popup-message"></p>
+      <button id="info-popup-close-button" class="big-nav-button">OK</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

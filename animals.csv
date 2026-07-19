@@ -1,0 +1,68 @@
+species,rarity,class,attack,defense,starter
+mosquito,common,conscript,,,yes
+ant,common,conscript,,,yes
+crow,common,conscript,,,yes
+spider,common,conscript,,,yes
+pigeon,common,conscript,,,yes
+house fly,common,conscript,,,yes
+dog,common,scout,,,no
+cat,common,ranger,,,no
+blue jay,common,healer,,,no
+gray squirrel,common,conscript,,,no
+robin,common,healer,,,no
+cardinal,common,healer,,,no
+mud dauber,common,soldier,,,no
+lizard,common,conscript,,,no
+bumblebee,common,ranger,,,no
+yellowjacket,common,soldier,,,no
+fruit fly,common,conscript,,,no
+canada goose,common,healer,,,no
+deer,uncommon,scout,,,no
+raccoon,uncommon,soldier,,,no
+turkey,uncommon,ranger,,,no
+great blue heron,uncommon,ranger,,,no
+iguana,uncommon,healer,,,no
+gopher tortoise,uncommon,lancer,,,no
+sandhill crane,uncommon,ranger,,,no
+cottontail rabbit,uncommon,conscript,,,no
+mouse,uncommon,conscript,,,no
+osprey,uncommon,ranger,,,no
+fiddler crab,uncommon,soldier,,,no
+mangrove tree crab,uncommon,lancer,,,no
+hermit crab,uncommon,soldier,,,no
+turkey vulture,uncommon,ranger,,,no
+chicken turtle,uncommon,lancer,,,no
+black racer,uncommon,soldier,,,no
+box turtle,uncommon,lancer,,,no
+white ibis,uncommon,healer,,,no
+bottlenose dolphin,rare,scout,,,no
+spoonbill,rare,,,,no
+armadillo,rare,,,,no
+alligator,rare,,,,no
+bald eagle,rare,,,,no
+fox,rare,,,,no
+opossum,rare,,,,no
+manatee,rare,,,,no
+coyote,rare,,,,no
+great horned owl,rare,,,,no
+barred owl,rare,,,,no
+softshell turtle,rare,lancer,,,no
+kestrel,rare,healer,,,no
+wild boar,epic,lancer,,,no
+bobcat,epic,scout,,,no
+black bear,epic,lancer,,,no
+water mocassin,epic,soldier,,,no
+river otter,epic,soldier,,,no
+barn owl,epic,soldier,,,no
+golden eagle,epic,scout,,,no
+crested caracara,epic,healer,,,no
+alligator snapping turtle,epic,lancer,,,no
+panther,legendary,ranger,,,no
+crocodile,legendary,lancer,,,no
+corgi,variant,scout,,,no
+aussie,variant,ranger,,,no
+pit bull,variant,lancer,,,no
+gecko,variant,conscript,,,no
+huntsman spider,variant,lancer,,,no
+black widow spider,variant,scout,,,no
+marsh rabbit,variant,conscript,,,no
