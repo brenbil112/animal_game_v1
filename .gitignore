@@ -2,3 +2,12 @@
 Thumbs.db
 node_modules/
 .env
+
+# Local Cloudflare dev state (SQLite files for local D1/Functions testing) —
+# never real data, and can be regenerated with `npm run dev`.
+.wrangler/
+.d1-local/
+
+# Scratch output from scripts/seed-users.js — review and rename into a
+# numbered migration file if it should be kept, don't commit it as-is.
+migrations/seed-output.sql

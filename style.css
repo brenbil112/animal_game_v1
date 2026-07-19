@@ -1,8 +1,59 @@
+/* Mobile-first reset: without this, padding/border can push elements wider
+   than their intended box, causing horizontal overflow on narrow screens. */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  /* Prevents the whole page from scrolling sideways if anything briefly
+     miscalculates its width on a narrow phone screen. */
+  overflow-x: hidden;
+}
+
 body {
   font-family: sans-serif;
   background-color: #222;
   color: white;
   text-align: center;
+  margin: 0;
+}
+
+/* Buttons and clickable divs: kill the gray tap-flash and the ~300ms delay
+   mobile browsers add while waiting to see if a tap becomes a double-tap. */
+button, .map-cell, .animal-chip, .swarm-slot, .map-trigger, .battle-cell {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Hover states are meaningless on touch — worse, a tap can leave a button
+   looking "stuck" in its hover style until the user taps elsewhere. Only
+   apply :hover on devices that actually have a mouse. */
+@media (hover: hover) and (pointer: fine) {
+  .big-nav-button:hover:not(:disabled) {
+    background-color: #555;
+  }
+
+  .swarm-slot:hover {
+    background-color: #555;
+  }
+
+  .map-trigger:hover {
+    border-color: #bbb;
+    color: white;
+  }
+
+  .map-trigger.no-war:hover {
+    border-color: #888;
+    color: #ccc;
+  }
+
+  .map-cell:hover {
+    background-color: #f0f0f0;
+  }
+
+  .battle-action-button:hover:not(:disabled) {
+    background-color: #555;
+  }
 }
 
 .hidden {
@@ -16,9 +67,11 @@ body {
   margin-top: 16px;
 }
 
-#username-input {
+#username-input,
+#pin-input {
   padding: 8px;
   font-size: 1rem;
+  width: 110px;
 }
 
 #login-form button,
@@ -64,10 +117,6 @@ body {
   cursor: pointer;
 }
 
-.big-nav-button:hover:not(:disabled) {
-  background-color: #555;
-}
-
 button:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -98,7 +147,8 @@ button:disabled {
   border: none;
   color: #ccc;
   font-size: 1rem;
-  padding: 8px 12px;
+  padding: 12px;
+  min-height: 44px;
   cursor: pointer;
 }
 
@@ -138,10 +188,6 @@ button:disabled {
   padding: 12px;
   color: white;
   cursor: pointer;
-}
-
-.swarm-slot:hover {
-  background-color: #555;
 }
 
 .swarm-slot-title {
@@ -217,19 +263,9 @@ button:disabled {
   cursor: pointer;
 }
 
-.map-trigger:hover {
-  border-color: #bbb;
-  color: white;
-}
-
 .map-trigger.no-war {
   cursor: default;
   border-style: solid;
-}
-
-.map-trigger.no-war:hover {
-  border-color: #888;
-  color: #ccc;
 }
 
 #war-map-overlay,
@@ -267,13 +303,18 @@ button:disabled {
 
 #war-map-grid {
   max-width: 100%;
+  /* dvh accounts for mobile Safari/Chrome's collapsing address bar; vh alone
+     can be taller than what's actually visible, cutting content off. The vh
+     line is a fallback for browsers that don't support dvh yet. */
   max-height: 65vh;
+  max-height: 65dvh;
   overflow: auto;
 }
 
 #battle-map-grid {
   width: 92vw;
   height: 70vh;
+  height: 70dvh;
   max-width: 900px;
   place-content: center;
   overflow: hidden;
@@ -286,10 +327,6 @@ button:disabled {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-}
-
-.map-cell:hover {
-  background-color: #f0f0f0;
 }
 
 .battle-cell {
@@ -367,10 +404,6 @@ button:disabled {
   color: white;
   padding: 8px 14px;
   cursor: pointer;
-}
-
-.battle-action-button:hover:not(:disabled) {
-  background-color: #555;
 }
 
 .swarm-token,
@@ -457,7 +490,7 @@ button:disabled {
 
 .animal-chip {
   border-radius: 16px;
-  padding: 6px 14px;
+  padding: 9px 14px;
   border: 1px solid #888;
   text-transform: capitalize;
   cursor: pointer;
@@ -519,15 +552,18 @@ button:disabled {
   border: none;
   color: white;
   font-size: 18px;
-  width: 32px;
-  height: 32px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   cursor: pointer;
 }
 
 .card-scene {
-  width: 280px;
-  height: 400px;
+  /* Scales down on narrow phones instead of a rigid 280x400 that can
+     overflow on the smallest screens; aspect-ratio keeps the same 7:10
+     card proportions at any size instead of a rigid pixel height. */
+  width: min(280px, 85vw);
+  aspect-ratio: 280 / 400;
   perspective: 1000px;
 }
 

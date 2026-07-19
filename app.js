@@ -1,8 +1,30 @@
-const VALID_USERNAMES = ["admin", "user1", "user2"];
-
 const loginForm = document.getElementById("login-form");
 const usernameInput = document.getElementById("username-input");
+const pinInput = document.getElementById("pin-input");
 const loginError = document.getElementById("login-error");
+
+// ── API client ───────────────────────────────────────────────────────────
+
+function getAuthToken() {
+  return localStorage.getItem("authToken");
+}
+
+async function apiFetch(path, options) {
+  options = options || {};
+  const headers = { "Content-Type": "application/json" };
+  const token = getAuthToken();
+  if (token) {
+    headers["Authorization"] = "Bearer " + token;
+  }
+
+  const response = await fetch("/api" + path, {
+    method: options.method || "GET",
+    headers: headers,
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+  });
+
+  return response.json();
+}
 
 function showScreen(screenId) {
   document.querySelectorAll(".screen").forEach(function (screen) {
@@ -35,17 +57,25 @@ function showHomeScreen(username) {
 function showLoginScreen() {
   showScreen("login-screen");
   usernameInput.value = "";
+  pinInput.value = "";
   loginError.classList.add("hidden");
 }
 
-loginForm.addEventListener("submit", function (event) {
+loginForm.addEventListener("submit", async function (event) {
   event.preventDefault();
 
   const enteredUsername = usernameInput.value.trim().toLowerCase();
+  const enteredPin = pinInput.value.trim();
 
-  if (VALID_USERNAMES.includes(enteredUsername)) {
-    localStorage.setItem("loggedInUser", enteredUsername);
-    showHomeScreen(enteredUsername);
+  const result = await apiFetch("/login", {
+    method: "POST",
+    body: { username: enteredUsername, pin: enteredPin },
+  });
+
+  if (result.success) {
+    localStorage.setItem("loggedInUser", result.username);
+    localStorage.setItem("authToken", result.token);
+    showHomeScreen(result.username);
   } else {
     loginError.classList.remove("hidden");
   }
@@ -54,23 +84,24 @@ loginForm.addEventListener("submit", function (event) {
 document.querySelectorAll(".logout-button").forEach(function (button) {
   button.addEventListener("click", function () {
     localStorage.removeItem("loggedInUser");
+    localStorage.removeItem("authToken");
     showLoginScreen();
   });
 });
 
-document.getElementById("home-wars-button").addEventListener("click", function () {
+document.getElementById("home-wars-button").addEventListener("click", async function () {
   showScreen("section-screen");
   showPanel("wars-panel");
   setActiveSectionNav(document.getElementById("nav-wars-button"));
-  renderMapTrigger("wars-map-trigger");
-  renderSwarmSlots();
+  await renderMapTrigger("wars-map-trigger");
+  await renderSwarmSlots();
 });
 
-document.getElementById("nav-wars-button").addEventListener("click", function () {
+document.getElementById("nav-wars-button").addEventListener("click", async function () {
   showPanel("wars-panel");
   setActiveSectionNav(document.getElementById("nav-wars-button"));
-  renderMapTrigger("wars-map-trigger");
-  renderSwarmSlots();
+  await renderMapTrigger("wars-map-trigger");
+  await renderSwarmSlots();
 });
 
 document.getElementById("home-animals-button").addEventListener("click", function () {
@@ -91,10 +122,10 @@ document.getElementById("app-title").addEventListener("click", function () {
   }
 });
 
-document.getElementById("home-admin-button").addEventListener("click", function () {
+document.getElementById("home-admin-button").addEventListener("click", async function () {
   showScreen("admin-screen");
-  renderWarStatus();
-  renderMapTrigger("admin-map-trigger");
+  await renderWarStatus();
+  await renderMapTrigger("admin-map-trigger");
 });
 
 document.getElementById("admin-back-button").addEventListener("click", function () {
@@ -127,10 +158,10 @@ function formatTurnStatus(turn) {
 // Builds a fresh war: 3 swarms per player lined up on opposite edges of the
 // grid, animals snapshotted from whatever each player currently has saved in
 // their swarm slots, and a random first turn.
-function generateWar(player1, player2) {
+async function generateWar(player1, player2) {
   const swarms = [];
-  const player1Swarms = getSwarms(player1);
-  const player2Swarms = getSwarms(player2);
+  const player1Swarms = await fetchSwarms(player1);
+  const player2Swarms = await fetchSwarms(player2);
 
   ["1", "2", "3"].forEach(function (swarmNumber, index) {
     swarms.push({
@@ -168,24 +199,35 @@ function generateWar(player1, player2) {
   };
 }
 
-// Rejects saved data that doesn't match this version's shape (e.g. a war
-// saved before the map became a 5x5 grid), so an old format prompts a fresh
-// Start/Reset War instead of silently rendering wrong.
-function getActiveWar() {
-  const warJson = localStorage.getItem("activeWar");
-  if (!warJson) {
-    return null;
-  }
+// The war state lives server-side now (one row in D1's active_war table),
+// shared by both players' devices. Rather than thread `await` through the
+// ~40 functions that read/write it (most of them deep inside render/click
+// handlers), we keep a single in-memory cache: the few true "entry points"
+// (opening the map, opening a battle, entering the Wars tab) refresh it from
+// the server, and everything in between keeps reading/writing the cache
+// exactly like it used to read/write localStorage — same shape, same sync
+// calls, just backed by a fire-and-forget PUT instead of a local write.
+let cachedWar = null;
 
-  const war = JSON.parse(warJson);
-  return war.size === WAR_GRID_SIZE && Array.isArray(war.swarms) ? war : null;
+async function loadWarCache() {
+  const war = await apiFetch("/war");
+  cachedWar = (war && war.size === WAR_GRID_SIZE && Array.isArray(war.swarms)) ? war : null;
+}
+
+function getActiveWar() {
+  return cachedWar;
 }
 
 function saveActiveWar(war) {
-  localStorage.setItem("activeWar", JSON.stringify(war));
+  cachedWar = war;
+  apiFetch("/war", { method: "PUT", body: war }).catch(function (error) {
+    console.error("Failed to save war state:", error);
+  });
 }
 
-function renderWarStatus() {
+async function renderWarStatus() {
+  await loadWarCache();
+
   const statusEl = document.getElementById("war-status");
   const war = getActiveWar();
 
@@ -197,7 +239,9 @@ function renderWarStatus() {
 }
 
 // Renders the small clickable placeholder shown before the map is opened.
-function renderMapTrigger(containerId) {
+async function renderMapTrigger(containerId) {
+  await loadWarCache();
+
   const container = document.getElementById(containerId);
   const war = getActiveWar();
 
@@ -214,11 +258,11 @@ function renderMapTrigger(containerId) {
   container.addEventListener("click", openWarMapFullscreen);
 }
 
-document.getElementById("start-war-button").addEventListener("click", function () {
-  const war = generateWar("user1", "user2");
+document.getElementById("start-war-button").addEventListener("click", async function () {
+  const war = await generateWar("user1", "user2");
   saveActiveWar(war);
-  renderWarStatus();
-  renderMapTrigger("admin-map-trigger");
+  await renderWarStatus();
+  await renderMapTrigger("admin-map-trigger");
 });
 
 // ── Main war map ─────────────────────────────────────────────────────────
@@ -490,7 +534,8 @@ function startTerritoryBattle(war, attackerSwarm, defenderSwarm, row, col) {
   });
 }
 
-function openWarMapFullscreen() {
+async function openWarMapFullscreen() {
+  await loadWarCache();
   const war = getActiveWar();
   if (!war) {
     return;
@@ -1176,7 +1221,8 @@ document.getElementById("battle-no-action-button").addEventListener("click", fun
   renderBattleGrid();
 });
 
-function openBattleFullscreen(battleId) {
+async function openBattleFullscreen(battleId) {
+  await loadWarCache();
   const war = getActiveWar();
   const battle = getBattleById(war, battleId);
   if (!battle) {
@@ -1228,54 +1274,65 @@ window.addEventListener("resize", function () {
   }
 });
 
+// ── Per-user data caches ─────────────────────────────────────────────────
+//
+// Hospital, unlocked animals, and sighting data now live server-side. These
+// caches are refreshed (async) at the handful of screens that show them —
+// Unlocked/Locked Animals, the swarm picker, and Log Daily Sightings — and
+// read synchronously everywhere else (chip rendering, the flip card), the
+// same "load at the entry point, read the cache in between" pattern used
+// for the war state above.
 const HOSPITAL_DURATION_MS = 72 * 60 * 60 * 1000;
 
-// Reads a user's hospital list, pruning any entries whose 72 hours are up
-// (and saving that prune) so callers never have to think about expiry.
-function getHospital(username) {
-  const hospitalJson = localStorage.getItem("hospital_" + username);
-  const hospital = hospitalJson ? JSON.parse(hospitalJson) : [];
+let cachedHospital = [];
+let cachedUnlockedExtra = [];
+let cachedSightingCounts = {};
+let cachedDailyLog = { date: "", loggedSpecies: [] };
 
-  const stillInjured = hospital.filter(function (entry) {
-    return Date.now() - entry.admittedAt < HOSPITAL_DURATION_MS;
-  });
+async function refreshCurrentUserCaches(username) {
+  const results = await Promise.all([
+    apiFetch("/hospital/" + username),
+    apiFetch("/unlocked/" + username),
+    apiFetch("/sightings/" + username),
+  ]);
 
-  if (stillInjured.length !== hospital.length) {
-    saveHospital(username, stillInjured);
-  }
-
-  return stillInjured;
+  cachedHospital = results[0];
+  cachedUnlockedExtra = results[1];
+  cachedSightingCounts = results[2].counts;
+  cachedDailyLog = results[2].today;
 }
 
-function saveHospital(username, hospital) {
-  localStorage.setItem("hospital_" + username, JSON.stringify(hospital));
-}
-
-function isSpeciesInjured(username, species) {
-  return getHospital(username).some(function (entry) {
+function isSpeciesInjured(species) {
+  return cachedHospital.some(function (entry) {
     return entry.species === species;
   });
 }
 
-// Admits a defeated animal to its owner's hospital and strips it out of
-// their saved swarm slots, so it can't be re-picked while it's recovering.
-function admitToHospital(owner, species) {
-  const hospital = getHospital(owner);
-  hospital.push({ species: species, admittedAt: Date.now() });
-  saveHospital(owner, hospital);
-
-  const swarms = getSwarms(owner);
-  ["1", "2", "3"].forEach(function (swarmNumber) {
-    swarms[swarmNumber] = (swarms[swarmNumber] || []).filter(function (species2) {
-      return species2 !== species;
-    });
-  });
-  saveSwarms(owner, swarms);
+// "starter" (from the CSV) is the default unlocked set shared by everyone.
+// Sightings-based unlocks are per-user on top of that, since two players
+// shouldn't unlock animals for each other just by spotting them.
+function isUnlockedForUser(animal) {
+  return animal.starter || cachedUnlockedExtra.includes(animal.species);
 }
 
-function renderHospital() {
+// Admits a defeated animal to its owner's hospital; the server also strips
+// it out of their saved swarm slots so it can't be re-picked while it's
+// recovering. Fire-and-forget (not awaited) so the whole battle system above
+// can keep calling this synchronously, same as when it wrote to localStorage
+// directly — the network request just happens in the background.
+function admitToHospital(owner, species) {
+  apiFetch("/hospital/" + owner, { method: "POST", body: { species: species } }).catch(function (error) {
+    console.error("Failed to admit to hospital:", error);
+  });
+
+  if (owner === localStorage.getItem("loggedInUser")) {
+    cachedHospital.push({ species: species, admittedAt: Date.now() });
+  }
+}
+
+async function renderHospital() {
   const username = localStorage.getItem("loggedInUser");
-  const hospital = getHospital(username);
+  const hospital = await apiFetch("/hospital/" + username);
   const container = document.getElementById("hospital-list");
   container.innerHTML = "";
 
@@ -1299,9 +1356,9 @@ function renderHospital() {
   container.appendChild(grid);
 }
 
-document.getElementById("show-hospital-button").addEventListener("click", function () {
+document.getElementById("show-hospital-button").addEventListener("click", async function () {
   showPanel("hospital-panel");
-  renderHospital();
+  await renderHospital();
 });
 
 function capitalize(text) {
@@ -1309,8 +1366,7 @@ function capitalize(text) {
 }
 
 function createAnimalChip(animal, isLocked) {
-  const currentUser = localStorage.getItem("loggedInUser");
-  const isInjured = !isLocked && isSpeciesInjured(currentUser, animal.species);
+  const isInjured = !isLocked && isSpeciesInjured(animal.species);
 
   const chip = document.createElement("div");
   chip.className = "animal-chip rarity-" + animal.rarity + (isLocked ? " locked" : "") + (isInjured ? " injured" : "");
@@ -1410,8 +1466,7 @@ function openAnimalCard(animal, isLocked) {
     loadCardImage(animal.species);
   }
 
-  const currentUser = localStorage.getItem("loggedInUser");
-  const isInjured = !isLocked && isSpeciesInjured(currentUser, animal.species);
+  const isInjured = !isLocked && isSpeciesInjured(animal.species);
 
   if (isLocked) {
     front.innerHTML += `<div class="card-locked-note">🔒 Locked — keep exploring to find this one</div>`;
@@ -1423,7 +1478,7 @@ function openAnimalCard(animal, isLocked) {
       front.innerHTML += `<div class="card-injured-note">✚ Injured — recovering in the hospital</div>`;
     }
 
-    const sightingCount = getSightingCounts(currentUser)[animal.species] || 0;
+    const sightingCount = cachedSightingCounts[animal.species] || 0;
 
     front.innerHTML += `<button class="card-flip-button" id="flip-to-back-button">Flip to see stats &rarr;</button>`;
     back.innerHTML = `
@@ -1497,66 +1552,17 @@ async function ensureAnimalsLoaded() {
     });
 }
 
-// "starter" (from the CSV) is the default unlocked set shared by everyone.
-// Sightings-based unlocks are per-user on top of that, since two players
-// shouldn't unlock animals for each other just by spotting them.
-function getUnlockedExtra(username) {
-  const json = localStorage.getItem("unlockedExtra_" + username);
-  return json ? JSON.parse(json) : [];
+// ── Swarms ───────────────────────────────────────────────────────────────
+
+async function fetchSwarms(username) {
+  return apiFetch("/swarms/" + username);
 }
 
-function saveUnlockedExtra(username, speciesList) {
-  localStorage.setItem("unlockedExtra_" + username, JSON.stringify(speciesList));
-}
-
-function isUnlockedForUser(username, animal) {
-  return animal.starter || getUnlockedExtra(username).includes(animal.species);
-}
-
-function getSightingCounts(username) {
-  const json = localStorage.getItem("sightingCounts_" + username);
-  return json ? JSON.parse(json) : {};
-}
-
-function saveSightingCounts(username, counts) {
-  localStorage.setItem("sightingCounts_" + username, JSON.stringify(counts));
-}
-
-function getTodayDateString() {
-  const now = new Date();
-  return now.getFullYear() + "-" + (now.getMonth() + 1) + "-" + now.getDate();
-}
-
-// Resets automatically (returns a fresh empty log) the moment the calendar
-// date changes, rather than needing an explicit "reset at midnight" job.
-function getDailySightingLog(username) {
-  const json = localStorage.getItem("dailySightings_" + username);
-  const log = json ? JSON.parse(json) : null;
-  const today = getTodayDateString();
-
-  if (!log || log.date !== today) {
-    return { date: today, loggedSpecies: [] };
-  }
-  return log;
-}
-
-function saveDailySightingLog(username, log) {
-  localStorage.setItem("dailySightings_" + username, JSON.stringify(log));
-}
-
-// Swarm data is stored per-user, e.g. localStorage["swarms_user1"], so
-// user1 and user2 (and admin, for testing) each have their own 3 swarms
-// without clobbering each other on a shared device.
-function getSwarms(username) {
-  const swarmsJson = localStorage.getItem("swarms_" + username);
-  if (!swarmsJson) {
-    return { 1: [], 2: [], 3: [] };
-  }
-  return JSON.parse(swarmsJson);
-}
-
-function saveSwarms(username, swarms) {
-  localStorage.setItem("swarms_" + username, JSON.stringify(swarms));
+async function saveSwarmSlot(username, swarmNumber, species) {
+  return apiFetch("/swarms/" + username, {
+    method: "PUT",
+    body: { swarmNumber: swarmNumber, species: species },
+  });
 }
 
 // Which swarm (other than excludeSwarmNumber) already has this species, if any.
@@ -1572,9 +1578,9 @@ function findSwarmContaining(swarms, species, excludeSwarmNumber) {
   return null;
 }
 
-function renderSwarmSlots() {
+async function renderSwarmSlots() {
   const username = localStorage.getItem("loggedInUser");
-  const swarms = getSwarms(username);
+  const swarms = await fetchSwarms(username);
 
   document.querySelectorAll(".swarm-slot").forEach(function (slot) {
     const swarmNumber = slot.dataset.swarmNumber;
@@ -1602,16 +1608,18 @@ async function openSwarmPicker(swarmNumber) {
   pickerSwarmNumber = swarmNumber;
 
   const username = localStorage.getItem("loggedInUser");
-  const swarms = getSwarms(username);
-  pickerSelectedSpecies = (swarms[swarmNumber] || []).slice();
 
   document.getElementById("swarm-picker-title").textContent = "Swarm " + swarmNumber;
-  updateSwarmPickerSubtitle();
 
   await ensureAnimalsLoaded();
+  await refreshCurrentUserCaches(username);
+  const swarms = await fetchSwarms(username);
+
+  pickerSelectedSpecies = (swarms[swarmNumber] || []).slice();
+  updateSwarmPickerSubtitle();
 
   const unlockedAnimals = animalsData.filter(function (animal) {
-    return isUnlockedForUser(username, animal);
+    return isUnlockedForUser(animal);
   });
 
   const list = document.getElementById("swarm-picker-list");
@@ -1621,7 +1629,7 @@ async function openSwarmPicker(swarmNumber) {
     const chip = document.createElement("div");
     chip.className = "animal-chip rarity-" + animal.rarity;
 
-    if (isSpeciesInjured(username, animal.species)) {
+    if (isSpeciesInjured(animal.species)) {
       chip.classList.add("picker-unavailable", "injured");
       chip.innerHTML = '<span class="injured-cross">✚</span> ' + capitalize(animal.species) + " (Injured)";
       list.appendChild(chip);
@@ -1669,13 +1677,16 @@ function closeSwarmPicker() {
   document.getElementById("swarm-picker-overlay").classList.add("hidden");
 }
 
-document.getElementById("swarm-picker-save-button").addEventListener("click", function () {
+document.getElementById("swarm-picker-save-button").addEventListener("click", async function () {
   const username = localStorage.getItem("loggedInUser");
-  const swarms = getSwarms(username);
-  swarms[pickerSwarmNumber] = pickerSelectedSpecies;
-  saveSwarms(username, swarms);
+  const result = await saveSwarmSlot(username, pickerSwarmNumber, pickerSelectedSpecies);
 
-  renderSwarmSlots();
+  if (!result.success) {
+    showInfoPopup("Swarms", result.message || "Couldn't save this swarm.");
+    return;
+  }
+
+  await renderSwarmSlots();
   closeSwarmPicker();
 });
 
@@ -1684,25 +1695,31 @@ document.getElementById("swarm-picker-backdrop").addEventListener("click", close
 
 document.getElementById("show-unlocked-button").addEventListener("click", async function () {
   showPanel("unlocked-animals-panel");
-  await ensureAnimalsLoaded();
 
   const currentUser = localStorage.getItem("loggedInUser");
+  await ensureAnimalsLoaded();
+  await refreshCurrentUserCaches(currentUser);
+
   const unlocked = animalsData.filter(function (animal) {
-    return isUnlockedForUser(currentUser, animal);
+    return isUnlockedForUser(animal);
   });
   renderAnimalGrid("unlocked-animals-list", unlocked, false, "Unlocked (" + unlocked.length + ")");
 });
 
 document.getElementById("show-locked-button").addEventListener("click", async function () {
   showPanel("locked-animals-panel");
-  await ensureAnimalsLoaded();
 
   const currentUser = localStorage.getItem("loggedInUser");
+  await ensureAnimalsLoaded();
+  await refreshCurrentUserCaches(currentUser);
+
   const locked = animalsData.filter(function (animal) {
-    return !isUnlockedForUser(currentUser, animal);
+    return !isUnlockedForUser(animal);
   });
   renderAnimalGrid("locked-animals-list", locked, true, "Locked (" + locked.length + ")");
 });
+
+// ── Daily sightings ──────────────────────────────────────────────────────
 
 let selectedSightingSpecies = [];
 let sightingsTimerInterval = null;
@@ -1729,7 +1746,10 @@ function updateSightingsTimer() {
 
 async function renderSightingsPanel() {
   const currentUser = localStorage.getItem("loggedInUser");
-  const log = getDailySightingLog(currentUser);
+
+  await ensureAnimalsLoaded();
+  await refreshCurrentUserCaches(currentUser);
+  const log = cachedDailyLog;
 
   const grid = document.getElementById("sightings-grid");
   const submitButton = document.getElementById("sightings-submit-button");
@@ -1769,12 +1789,10 @@ async function renderSightingsPanel() {
   subtitleEl.textContent = "Select up to " + remainingSlots + " more animal" + (remainingSlots === 1 ? "" : "s") +
     " you spotted today (" + selectedSightingSpecies.length + "/" + remainingSlots + " selected).";
 
-  await ensureAnimalsLoaded();
-
   grid.innerHTML = "";
 
   animalsData.forEach(function (animal) {
-    const isLocked = !isUnlockedForUser(currentUser, animal);
+    const isLocked = !isUnlockedForUser(animal);
     const alreadyLoggedToday = log.loggedSpecies.includes(animal.species);
 
     const chip = document.createElement("div");
@@ -1813,50 +1831,36 @@ async function renderSightingsPanel() {
   });
 }
 
-document.getElementById("sightings-submit-button").addEventListener("click", function () {
+document.getElementById("sightings-submit-button").addEventListener("click", async function () {
   if (selectedSightingSpecies.length === 0) {
     return;
   }
 
   const currentUser = localStorage.getItem("loggedInUser");
-  const log = getDailySightingLog(currentUser);
-  const counts = getSightingCounts(currentUser);
-  const unlockedExtra = getUnlockedExtra(currentUser);
-  const newlyUnlocked = [];
-
-  selectedSightingSpecies.forEach(function (species) {
-    const animal = animalsData.find(function (a) {
-      return a.species === species;
-    });
-
-    counts[species] = (counts[species] || 0) + 1;
-
-    if (!isUnlockedForUser(currentUser, animal)) {
-      unlockedExtra.push(species);
-      newlyUnlocked.push(species);
-    }
-
-    log.loggedSpecies.push(species);
+  const result = await apiFetch("/sightings/" + currentUser, {
+    method: "POST",
+    body: { species: selectedSightingSpecies },
   });
 
-  saveSightingCounts(currentUser, counts);
-  saveUnlockedExtra(currentUser, unlockedExtra);
-  saveDailySightingLog(currentUser, log);
+  if (!result.success) {
+    showInfoPopup("Daily Sightings", result.message || "Something went wrong.");
+    return;
+  }
 
   let message = "Thanks for logging your daily sightings!";
-  if (newlyUnlocked.length > 0) {
-    message += " Congratulations, you've unlocked " + newlyUnlocked.map(capitalize).join(", ") + "!";
+  if (result.newlyUnlocked.length > 0) {
+    message += " Congratulations, you've unlocked " + result.newlyUnlocked.map(capitalize).join(", ") + "!";
   }
   showInfoPopup("Daily Sightings", message);
 
   selectedSightingSpecies = [];
-  renderSightingsPanel();
+  await renderSightingsPanel();
 });
 
-document.getElementById("show-sightings-button").addEventListener("click", function () {
+document.getElementById("show-sightings-button").addEventListener("click", async function () {
   showPanel("log-sightings-panel");
   selectedSightingSpecies = [];
-  renderSightingsPanel();
+  await renderSightingsPanel();
 });
 
 // For each sub-page, which panel "Back" should return to.
@@ -1882,7 +1886,7 @@ document.getElementById("back-button").addEventListener("click", function () {
 });
 
 const savedUser = localStorage.getItem("loggedInUser");
-if (savedUser && VALID_USERNAMES.includes(savedUser)) {
+if (savedUser && getAuthToken()) {
   showHomeScreen(savedUser);
 } else {
   showLoginScreen();

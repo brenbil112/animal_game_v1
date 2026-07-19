@@ -1,0 +1,8 @@
+name = "animal-kingdom"
+pages_build_output_dir = "."
+compatibility_date = "2026-07-19"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "animal-kingdom-db"
+database_id = "6052dbd2-2808-46e2-b4ed-8081f65d7de7"

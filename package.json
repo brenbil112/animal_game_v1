@@ -1,0 +1,25 @@
+{
+  "name": "animal_game_v1",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "wrangler pages dev .",
+    "db:apply-local": "node scripts/apply-local-schema.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/brenbil112/animal_game_v1.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/brenbil112/animal_game_v1/issues"
+  },
+  "homepage": "https://github.com/brenbil112/animal_game_v1#readme",
+  "description": "",
+  "devDependencies": {
+    "wrangler": "^4.112.0"
+  }
+}
