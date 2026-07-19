@@ -1499,19 +1499,18 @@ function openAnimalCard(animal, isLocked) {
     }
 
     const sightingCount = cachedSightingCounts[animal.species] || 0;
-    const statCaps = getStatCapsByRarity()[animal.rarity] || { attack: 1, defense: 1, healing: 1 };
+    const statCap = STAT_CAP_BY_RARITY[animal.rarity] || 100;
 
     const attrHtml = ["attack", "defense", "healing"].map(function (stat) {
-      const value = animal[stat];
-      const cap = statCaps[stat] || value || 1;
-      const percent = Math.min(100, (value / cap) * 100);
+      const value = Math.min(100, Math.max(0, animal[stat]));
       return `
         <div class="card-attr-row">
           <span class="card-attr-name">${capitalize(stat)}</span>
           <div class="card-attr-bar-wrap">
-            <div class="card-attr-bar-fill" style="width:${percent}%"></div>
+            <div class="card-attr-bar-fill" style="width:${value}%"></div>
+            <div class="card-attr-cap-line" style="left:${statCap}%" title="Max for ${rarityLabel}: ${statCap}"></div>
           </div>
-          <span class="card-attr-val">${value} / ${cap}</span>
+          <span class="card-attr-val">${animal[stat]}</span>
         </div>
       `;
     }).join("");
@@ -1524,7 +1523,7 @@ function openAnimalCard(animal, isLocked) {
           <div class="card-sighting-val">${sightingCount}</div>
         </div>
       </div>
-      <div class="card-attrs-title">Attributes (rarity max)</div>
+      <div class="card-attrs-title">Attributes</div>
       ${attrHtml}
       <button class="card-flip-button" style="margin-top:auto" id="flip-to-front-button">&larr; Flip back</button>
     `;
@@ -1603,30 +1602,18 @@ async function ensureAnimalsLoaded() {
     });
 }
 
-// The per-rarity ceiling each stat reaches across the roster (e.g. attack
-// tops out around 60 for legendary, 4 for common) — there's no
-// leveling/training system here, so this just normalizes each animal's
-// fixed stats against its own tier's peers for the card's stat bars.
-let statCapsByRarity = null;
-
-function getStatCapsByRarity() {
-  if (statCapsByRarity) {
-    return statCapsByRarity;
-  }
-
-  statCapsByRarity = {};
-  animalsData.forEach(function (animal) {
-    if (!statCapsByRarity[animal.rarity]) {
-      statCapsByRarity[animal.rarity] = { attack: 0, defense: 0, healing: 0 };
-    }
-    const caps = statCapsByRarity[animal.rarity];
-    caps.attack = Math.max(caps.attack, animal.attack);
-    caps.defense = Math.max(caps.defense, animal.defense);
-    caps.healing = Math.max(caps.healing, animal.healing);
-  });
-
-  return statCapsByRarity;
-}
+// The highest a single stat can reach for that rarity once the leveling
+// system exists — mirrors STAT_CAP_BY_RARITY in baseball_game_attempt3.
+// Every stat bar is drawn on a fixed 0-100 scale; this is just where the
+// cap line lands on it.
+const STAT_CAP_BY_RARITY = {
+  common: 50,
+  uncommon: 60,
+  rare: 75,
+  epic: 90,
+  legendary: 100,
+  variant: 100,
+};
 
 // ── Swarms ───────────────────────────────────────────────────────────────
 

@@ -752,6 +752,14 @@ button:disabled {
   background: #3ddc6f;
 }
 
+.card-attr-cap-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ffd54f;
+}
+
 .card-attr-val {
   font-weight: 700;
   min-width: 44px;
