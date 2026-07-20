@@ -156,21 +156,34 @@ function formatTurnStatus(turn) {
   return "Turn: " + turn.currentPlayer + " (expires " + expiresAt.toLocaleString() + ")";
 }
 
-// Builds a fresh war: 3 swarms per player lined up on opposite edges of the
-// grid, animals snapshotted from whatever each player currently has saved in
-// their swarm slots, and a random first turn.
+// Three positions centered on `center`, each at least one empty tile apart
+// from its neighbor — e.g. centeredSpacedPositions(6, 2) => [4, 6, 8]. Used
+// to lay out a player's 3 starting swarms/units so they aren't clumped
+// together (no free movement without bumping a teammate) or all lined up
+// on one side of the board.
+function centeredSpacedPositions(center, gap) {
+  return [center - gap, center, center + gap];
+}
+
+// Builds a fresh war: 3 swarms per player, one row in from their home edge
+// (not sitting dead-on the back line) and spread across the middle columns
+// with a gap between each swarm — animals snapshotted from whatever each
+// player currently has saved in their swarm slots, and a random first turn.
 async function generateWar(player1, player2) {
   const swarms = [];
   const player1Swarms = await fetchSwarms(player1);
   const player2Swarms = await fetchSwarms(player2);
+
+  const baseCol = Math.floor(WAR_GRID_SIZE / 2);
+  const swarmCols = centeredSpacedPositions(baseCol, 2);
 
   ["1", "2", "3"].forEach(function (swarmNumber, index) {
     swarms.push({
       id: player1 + "-" + swarmNumber,
       owner: player1,
       swarmNumber: swarmNumber,
-      row: 0,
-      col: index + 1,
+      row: 1,
+      col: swarmCols[index],
       animals: player1Swarms[swarmNumber] || [],
       battleId: null,
     });
@@ -181,8 +194,8 @@ async function generateWar(player1, player2) {
       id: player2 + "-" + swarmNumber,
       owner: player2,
       swarmNumber: swarmNumber,
-      row: WAR_GRID_SIZE - 1,
-      col: index + 1,
+      row: WAR_GRID_SIZE - 2,
+      col: swarmCols[index],
       animals: player2Swarms[swarmNumber] || [],
       battleId: null,
     });
@@ -653,7 +666,11 @@ function startTerritoryBattle(war, attackerSwarm, defenderSwarm, row, col) {
 
   const battlePlayer1 = attackerSwarm.owner;
   const battlePlayer2 = defenderSwarm.owner;
-  const midRow = Math.floor(BATTLE_GRID_SIZE / 2) - 1;
+  // One column in from each side's edge (not dead-on the back line), rows
+  // centered on the board and spread out with a gap so the 3 animals in a
+  // swarm don't start shoulder-to-shoulder.
+  const midRow = Math.floor(BATTLE_GRID_SIZE / 2);
+  const unitRows = centeredSpacedPositions(midRow, 2);
   const animals = [];
 
   attackerSwarm.animals.forEach(function (species, index) {
@@ -661,8 +678,8 @@ function startTerritoryBattle(war, attackerSwarm, defenderSwarm, row, col) {
       id: battleId + "-" + battlePlayer1 + "-" + index,
       owner: battlePlayer1,
       species: species,
-      row: midRow + index,
-      col: 0,
+      row: unitRows[index],
+      col: 1,
       incapacitated: false,
       hasActedThisTurn: false,
       ambushing: false,
@@ -677,8 +694,8 @@ function startTerritoryBattle(war, attackerSwarm, defenderSwarm, row, col) {
       id: battleId + "-" + battlePlayer2 + "-" + index,
       owner: battlePlayer2,
       species: species,
-      row: midRow + index,
-      col: BATTLE_GRID_SIZE - 1,
+      row: unitRows[index],
+      col: BATTLE_GRID_SIZE - 2,
       incapacitated: false,
       hasActedThisTurn: false,
       ambushing: false,
