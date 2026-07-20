@@ -358,6 +358,16 @@ button:disabled {
   border: 4px solid #ccc;
 }
 
+#war-map-grid,
+#battle-map-grid {
+  cursor: grab;
+}
+
+#war-map-grid.panning,
+#battle-map-grid.panning {
+  cursor: grabbing;
+}
+
 #war-map-grid {
   max-width: 100%;
   /* dvh accounts for mobile Safari/Chrome's collapsing address bar; vh alone
@@ -373,8 +383,8 @@ button:disabled {
   height: 70vh;
   height: 70dvh;
   max-width: 900px;
-  place-content: center;
-  overflow: hidden;
+  place-content: start;
+  overflow: auto;
 }
 
 .map-cell {

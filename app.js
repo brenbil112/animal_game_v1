@@ -132,8 +132,9 @@ document.getElementById("admin-back-button").addEventListener("click", function 
   showScreen("home-screen");
 });
 
-const WAR_GRID_SIZE = 5;
-const BATTLE_GRID_SIZE = 10;
+const WAR_GRID_SIZE = 13;
+const BATTLE_GRID_SIZE = 20;
+const BATTLE_CELL_SIZE = 44;
 const TURN_DURATION_MS = 24 * 60 * 60 * 1000;
 
 // Shared by the main war map and every territory battle: both are just
@@ -264,6 +265,69 @@ document.getElementById("start-war-button").addEventListener("click", async func
   await renderWarStatus();
   await renderMapTrigger("admin-map-trigger");
 });
+
+// Touchscreens already get panning for free from native scrolling on an
+// overflow:auto container, but a mouse has no built-in way to drag one —
+// this adds click-and-drag panning for desktop, and swallows the click that
+// would otherwise land on whatever cell the drag happened to end on (so
+// panning the map doesn't also select/move/attack).
+function enableMapPanning(container) {
+  let isDragging = false;
+  let hasDragged = false;
+  let startX = 0;
+  let startY = 0;
+  let startScrollLeft = 0;
+  let startScrollTop = 0;
+
+  container.addEventListener("mousedown", function (event) {
+    if (event.button !== 0) {
+      return;
+    }
+    isDragging = true;
+    hasDragged = false;
+    startX = event.clientX;
+    startY = event.clientY;
+    startScrollLeft = container.scrollLeft;
+    startScrollTop = container.scrollTop;
+    container.classList.add("panning");
+  });
+
+  document.addEventListener("mousemove", function (event) {
+    if (!isDragging) {
+      return;
+    }
+    const deltaX = event.clientX - startX;
+    const deltaY = event.clientY - startY;
+    if (Math.abs(deltaX) > 4 || Math.abs(deltaY) > 4) {
+      hasDragged = true;
+    }
+    container.scrollLeft = startScrollLeft - deltaX;
+    container.scrollTop = startScrollTop - deltaY;
+  });
+
+  document.addEventListener("mouseup", function () {
+    isDragging = false;
+    container.classList.remove("panning");
+  });
+
+  container.addEventListener("click", function (event) {
+    if (hasDragged) {
+      event.stopPropagation();
+      hasDragged = false;
+    }
+  }, true);
+}
+
+enableMapPanning(document.getElementById("war-map-grid"));
+enableMapPanning(document.getElementById("battle-map-grid"));
+
+// Boards are bigger than any screen now, so opening one straight to its
+// top-left corner would hide most of the action — center the scroll
+// position instead, as a reasonable default before the player pans around.
+function centerScroll(container) {
+  container.scrollLeft = (container.scrollWidth - container.clientWidth) / 2;
+  container.scrollTop = (container.scrollHeight - container.clientHeight) / 2;
+}
 
 // ── Main war map ─────────────────────────────────────────────────────────
 
@@ -546,6 +610,7 @@ async function openWarMapFullscreen() {
   renderWarMapGrid();
 
   document.getElementById("war-map-overlay").classList.remove("hidden");
+  centerScroll(document.getElementById("war-map-grid"));
 }
 
 function closeWarMapFullscreen() {
@@ -917,16 +982,11 @@ function renderBattleGrid() {
   const grid = document.getElementById("battle-map-grid");
   grid.innerHTML = "";
 
-  // The grid's box size comes from CSS (width/height in the stylesheet), so
-  // it's already correct here even though we're about to clear its content —
-  // this lets the cell size adapt to whatever screen the battle is opened on
-  // instead of being hardcoded, and fill the space instead of needing scroll.
-  const availableWidth = grid.clientWidth;
-  const availableHeight = grid.clientHeight;
-  const cellSize = Math.floor((Math.min(availableWidth, availableHeight) - 20) / battle.size);
-
-  grid.style.gridTemplateColumns = "repeat(" + battle.size + ", " + cellSize + "px)";
-  grid.style.gridTemplateRows = "repeat(" + battle.size + ", " + cellSize + "px)";
+  // Cells stay a fixed, tap-friendly size regardless of board size — at
+  // BATTLE_GRID_SIZE 20 that's bigger than any screen, so the container
+  // scrolls/pans instead of shrinking cells down to illegibility.
+  grid.style.gridTemplateColumns = "repeat(" + battle.size + ", " + BATTLE_CELL_SIZE + "px)";
+  grid.style.gridTemplateRows = "repeat(" + battle.size + ", " + BATTLE_CELL_SIZE + "px)";
 
   const selectedAnimal = battle.animals.find(function (a) {
     return a.id === selectedAnimalId;
@@ -1267,11 +1327,12 @@ async function openBattleFullscreen(battleId) {
   document.getElementById("battle-overlay-heading").textContent =
     battle.player1 + " vs " + battle.player2 + " — Territory Battle";
 
-  // Must unhide before rendering — while display:none, the grid has no layout
-  // box, so clientWidth/clientHeight read as 0 and the cell-size math below
-  // would divide from a negative number instead of the real available space.
+  // Must unhide before rendering — while display:none, the grid has no
+  // layout box, so centering the scroll position below would compute against
+  // a 0-sized container instead of the real available space.
   document.getElementById("battle-overlay").classList.remove("hidden");
   renderBattleGrid();
+  centerScroll(document.getElementById("battle-map-grid"));
 }
 
 function closeBattleFullscreen() {
