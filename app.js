@@ -1401,13 +1401,6 @@ function createAnimalChip(animal, isLocked) {
   return chip;
 }
 
-// Test roster for the Wikipedia-photo experiment — expand this list once
-// we've confirmed the match quality/reliability for a few species.
-const ANIMAL_IMAGE_TEST_SPECIES = [
-  "blue jay", "mosquito", "ant", "crow", "spider", "pigeon", "house fly",
-  "gray squirrel", "lizard",
-];
-
 const animalImageCache = {};
 let currentCardSpecies = null;
 
@@ -1418,10 +1411,24 @@ function toTitleCase(text) {
 }
 
 // Species whose Wikipedia article title doesn't match a plain title-cased
-// guess of the common name (e.g. "house fly" -> the real article is the
-// one-word "Housefly"). Add to this as more mismatches turn up.
+// guess of the common name — either because the plain guess lands on a
+// disambiguation/index page with no photo (e.g. "robin"), or because it
+// lands on a real but wrong article (e.g. "turkey" -> the country, "aussie"
+// -> Australians). Verified individually against the REST summary API.
 const WIKIPEDIA_TITLE_OVERRIDES = {
   "house fly": "Housefly",
+  "gray squirrel": "Eastern gray squirrel",
+  "robin": "American robin",
+  "cardinal": "Northern cardinal",
+  "fruit fly": "Drosophila melanogaster",
+  "turkey": "Wild turkey",
+  "black racer": "Eastern racer",
+  "white ibis": "American white ibis",
+  "black bear": "American black bear",
+  "water mocassin": "Cottonmouth",
+  "river otter": "North American river otter",
+  "panther": "Florida panther",
+  "aussie": "Australian Shepherd",
 };
 
 // Wikipedia's REST summary endpoint is free, CORS-enabled, and needs no API
@@ -1488,9 +1495,7 @@ function openAnimalCard(animal, isLocked) {
     <div class="card-picture-placeholder" id="card-picture-area">${name}<br>picture</div>
   `;
 
-  if (ANIMAL_IMAGE_TEST_SPECIES.includes(animal.species)) {
-    loadCardImage(animal.species);
-  }
+  loadCardImage(animal.species);
 
   const isInjured = !isLocked && isSpeciesInjured(animal.species);
 
