@@ -329,6 +329,113 @@ function centerScroll(container) {
   container.scrollTop = (container.scrollHeight - container.clientHeight) / 2;
 }
 
+// ── Map zoom (pinch-to-zoom on touch, +/- buttons on desktop) ──────────────
+// Cell size is just CSS grid track sizing, so zooming never needs to rebuild
+// the cells themselves (which would be expensive mid-gesture) — it only
+// updates gridTemplateColumns/Rows and adjusts scroll so whatever point was
+// under your fingers (or the center, for the buttons) stays put.
+const WAR_CELL_SIZE_DEFAULT = 50;
+const WAR_CELL_SIZE_MIN = 24;
+const WAR_CELL_SIZE_MAX = 90;
+const BATTLE_CELL_SIZE_MIN = 20;
+const BATTLE_CELL_SIZE_MAX = 80;
+const ZOOM_BUTTON_STEP = 10;
+
+let warCellSize = WAR_CELL_SIZE_DEFAULT;
+let battleCellSize = BATTLE_CELL_SIZE;
+
+function resizeGridTracks(gridEl, size, cellSizePx) {
+  gridEl.style.gridTemplateColumns = "repeat(" + size + ", " + cellSizePx + "px)";
+  gridEl.style.gridTemplateRows = "repeat(" + size + ", " + cellSizePx + "px)";
+}
+
+// Rescales a grid around a fixed point (in viewport coordinates, relative to
+// the container) so that point stays visually still — e.g. the midpoint
+// between two pinching fingers, or the container's center for the +/-
+// buttons — instead of the view jumping to the top-left on every zoom step.
+function zoomGridAround(container, size, oldCellSize, newCellSize, anchorX, anchorY) {
+  if (newCellSize === oldCellSize) {
+    return newCellSize;
+  }
+
+  const contentX = (container.scrollLeft + anchorX) / oldCellSize;
+  const contentY = (container.scrollTop + anchorY) / oldCellSize;
+
+  resizeGridTracks(container, size, newCellSize);
+
+  container.scrollLeft = contentX * newCellSize - anchorX;
+  container.scrollTop = contentY * newCellSize - anchorY;
+
+  return newCellSize;
+}
+
+function enablePinchZoom(container, size, getCellSize, setCellSize, minSize, maxSize) {
+  let pinchStartDistance = null;
+  let pinchStartCellSize = null;
+
+  function touchDistance(touches) {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
+  container.addEventListener("touchstart", function (event) {
+    if (event.touches.length === 2) {
+      pinchStartDistance = touchDistance(event.touches);
+      pinchStartCellSize = getCellSize();
+    }
+  }, { passive: true });
+
+  container.addEventListener("touchmove", function (event) {
+    if (event.touches.length !== 2 || pinchStartDistance === null) {
+      return;
+    }
+    event.preventDefault();
+
+    const ratio = touchDistance(event.touches) / pinchStartDistance;
+    const newCellSize = Math.min(maxSize, Math.max(minSize, Math.round(pinchStartCellSize * ratio)));
+
+    const rect = container.getBoundingClientRect();
+    const midX = (event.touches[0].clientX + event.touches[1].clientX) / 2 - rect.left;
+    const midY = (event.touches[0].clientY + event.touches[1].clientY) / 2 - rect.top;
+
+    setCellSize(zoomGridAround(container, size, getCellSize(), newCellSize, midX, midY));
+  }, { passive: false });
+
+  container.addEventListener("touchend", function (event) {
+    if (event.touches.length < 2) {
+      pinchStartDistance = null;
+    }
+  });
+}
+
+function stepZoom(container, size, getCellSize, setCellSize, minSize, maxSize, direction) {
+  const oldCellSize = getCellSize();
+  const newCellSize = Math.min(maxSize, Math.max(minSize, oldCellSize + direction * ZOOM_BUTTON_STEP));
+  const anchorX = container.clientWidth / 2;
+  const anchorY = container.clientHeight / 2;
+  setCellSize(zoomGridAround(container, size, oldCellSize, newCellSize, anchorX, anchorY));
+}
+
+const warMapGridEl = document.getElementById("war-map-grid");
+const battleMapGridEl = document.getElementById("battle-map-grid");
+
+enablePinchZoom(warMapGridEl, WAR_GRID_SIZE, function () { return warCellSize; }, function (v) { warCellSize = v; }, WAR_CELL_SIZE_MIN, WAR_CELL_SIZE_MAX);
+enablePinchZoom(battleMapGridEl, BATTLE_GRID_SIZE, function () { return battleCellSize; }, function (v) { battleCellSize = v; }, BATTLE_CELL_SIZE_MIN, BATTLE_CELL_SIZE_MAX);
+
+document.getElementById("war-zoom-in-button").addEventListener("click", function () {
+  stepZoom(warMapGridEl, WAR_GRID_SIZE, function () { return warCellSize; }, function (v) { warCellSize = v; }, WAR_CELL_SIZE_MIN, WAR_CELL_SIZE_MAX, 1);
+});
+document.getElementById("war-zoom-out-button").addEventListener("click", function () {
+  stepZoom(warMapGridEl, WAR_GRID_SIZE, function () { return warCellSize; }, function (v) { warCellSize = v; }, WAR_CELL_SIZE_MIN, WAR_CELL_SIZE_MAX, -1);
+});
+document.getElementById("battle-zoom-in-button").addEventListener("click", function () {
+  stepZoom(battleMapGridEl, BATTLE_GRID_SIZE, function () { return battleCellSize; }, function (v) { battleCellSize = v; }, BATTLE_CELL_SIZE_MIN, BATTLE_CELL_SIZE_MAX, 1);
+});
+document.getElementById("battle-zoom-out-button").addEventListener("click", function () {
+  stepZoom(battleMapGridEl, BATTLE_GRID_SIZE, function () { return battleCellSize; }, function (v) { battleCellSize = v; }, BATTLE_CELL_SIZE_MIN, BATTLE_CELL_SIZE_MAX, -1);
+});
+
 // ── Main war map ─────────────────────────────────────────────────────────
 
 let selectedSwarmId = null;
@@ -358,8 +465,7 @@ function renderWarMapGrid() {
 
   const grid = document.getElementById("war-map-grid");
   grid.innerHTML = "";
-  grid.style.gridTemplateColumns = "repeat(" + war.size + ", 50px)";
-  grid.style.gridTemplateRows = "repeat(" + war.size + ", 50px)";
+  resizeGridTracks(grid, war.size, warCellSize);
 
   const baseCol = Math.floor(war.size / 2);
 
@@ -607,6 +713,7 @@ async function openWarMapFullscreen() {
 
   document.getElementById("war-map-overlay-heading").textContent = war.player1 + " vs " + war.player2;
   selectedSwarmId = null;
+  warCellSize = WAR_CELL_SIZE_DEFAULT;
   renderWarMapGrid();
 
   document.getElementById("war-map-overlay").classList.remove("hidden");
@@ -982,11 +1089,11 @@ function renderBattleGrid() {
   const grid = document.getElementById("battle-map-grid");
   grid.innerHTML = "";
 
-  // Cells stay a fixed, tap-friendly size regardless of board size — at
-  // BATTLE_GRID_SIZE 20 that's bigger than any screen, so the container
-  // scrolls/pans instead of shrinking cells down to illegibility.
-  grid.style.gridTemplateColumns = "repeat(" + battle.size + ", " + BATTLE_CELL_SIZE + "px)";
-  grid.style.gridTemplateRows = "repeat(" + battle.size + ", " + BATTLE_CELL_SIZE + "px)";
+  // Cells stay a fixed, tap-friendly default size regardless of board size —
+  // at BATTLE_GRID_SIZE 20 that's bigger than any screen, so the container
+  // scrolls/pans instead of shrinking cells down to illegibility. The player
+  // can also zoom this size in/out (see battleCellSize, "Map zoom" above).
+  resizeGridTracks(grid, battle.size, battleCellSize);
 
   const selectedAnimal = battle.animals.find(function (a) {
     return a.id === selectedAnimalId;
@@ -1323,6 +1430,7 @@ async function openBattleFullscreen(battleId) {
 
   currentBattleId = battleId;
   deselectBattleUnit();
+  battleCellSize = BATTLE_CELL_SIZE;
 
   document.getElementById("battle-overlay-heading").textContent =
     battle.player1 + " vs " + battle.player2 + " — Territory Battle";
@@ -1339,7 +1447,7 @@ function closeBattleFullscreen() {
   document.getElementById("battle-overlay").classList.add("hidden");
 }
 
-document.getElementById("battle-zoom-out-button").addEventListener("click", closeBattleFullscreen);
+document.getElementById("battle-exit-button").addEventListener("click", closeBattleFullscreen);
 
 document.getElementById("battle-end-turn-button").addEventListener("click", function () {
   const war = getActiveWar();

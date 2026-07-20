@@ -62,6 +62,11 @@ button, .map-cell, .animal-chip, .swarm-slot, .map-trigger, .battle-cell {
     border-color: #ffd54f;
     color: #ffd54f;
   }
+
+  .zoom-button:hover {
+    background-color: #444;
+    color: white;
+  }
 }
 
 .hidden {
@@ -361,6 +366,15 @@ button:disabled {
 #war-map-grid,
 #battle-map-grid {
   cursor: grab;
+  /* Allow native single/multi-finger scrolling (panning) but NOT the
+     browser's native pinch-to-zoom-the-page gesture — pinch-zoom is
+     handled by our own touch listeners instead, scoped to the map. */
+  touch-action: pan-x pan-y;
+}
+
+#war-map-grid .map-cell,
+#battle-map-grid .map-cell {
+  touch-action: pan-x pan-y;
 }
 
 #war-map-grid.panning,
@@ -385,6 +399,23 @@ button:disabled {
   max-width: 900px;
   place-content: start;
   overflow: auto;
+}
+
+.zoom-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.zoom-button {
+  background: none;
+  border: 1px solid #666;
+  border-radius: 8px;
+  color: #ccc;
+  width: 44px;
+  height: 44px;
+  font-size: 1.3rem;
+  line-height: 1;
+  cursor: pointer;
 }
 
 .map-cell {
