@@ -12,10 +12,13 @@ html {
 
 body {
   font-family: sans-serif;
+  background: radial-gradient(circle at top, #2a2a2a, #191919 70%);
   background-color: #222;
   color: white;
   text-align: center;
   margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Buttons and clickable divs: kill the gray tap-flash and the ~300ms delay
@@ -53,6 +56,11 @@ button, .map-cell, .animal-chip, .swarm-slot, .map-trigger, .battle-cell {
 
   .battle-action-button:hover:not(:disabled) {
     background-color: #555;
+  }
+
+  .tutorial-button:hover {
+    border-color: #ffd54f;
+    color: #ffd54f;
   }
 }
 
@@ -92,10 +100,8 @@ button, .map-cell, .animal-chip, .swarm-slot, .map-trigger, .battle-cell {
 
 .user-bar {
   display: flex;
-  justify-content: center;
   align-items: center;
   gap: 12px;
-  margin: 12px 0;
 }
 
 .big-nav-buttons {
@@ -104,17 +110,24 @@ button, .map-cell, .animal-chip, .swarm-slot, .map-trigger, .battle-cell {
   align-items: stretch;
   gap: 12px;
   max-width: 320px;
-  margin: 24px auto;
+  margin: 28px auto;
+  padding: 0 12px;
 }
 
 .big-nav-button {
-  background-color: #444;
-  border: 1px solid #888;
+  background-color: #3a3a3a;
+  border: 1px solid #666;
   border-radius: 10px;
   color: white;
   font-size: 1.2rem;
   padding: 20px;
   cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  transition: background-color 0.15s;
+}
+
+.big-nav-icon {
+  margin-right: 8px;
 }
 
 button:disabled {
@@ -122,19 +135,57 @@ button:disabled {
   cursor: not-allowed;
 }
 
-#section-header {
+/* Shared toolbar look for the login-less "app bar" header on the home,
+   admin, and section screens: title on the left, contextual nav (if any)
+   in the middle, tutorial/user actions on the right. */
+.app-topbar {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 16px;
-  border-bottom: 1px solid #555;
-  padding-bottom: 12px;
+  gap: 10px 20px;
+  padding: 14px 20px;
+  background-color: #2a2a2a;
+  border-bottom: 1px solid #444;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.app-topbar-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-topbar-logo {
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
+.app-topbar-title h1 {
+  margin: 0;
+  font-size: 1.3rem;
 }
 
 #app-title {
   cursor: pointer;
-  margin: 8px 0;
+}
+
+.app-topbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.tutorial-button {
+  background: none;
+  border: 1px solid #666;
+  border-radius: 20px;
+  color: #ccc;
+  padding: 8px 14px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
 .section-nav {
@@ -784,4 +835,66 @@ button:disabled {
   text-align: right;
   font-size: 11px;
   color: rgba(255, 255, 255, 0.8);
+}
+
+#rules-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+#rules-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+}
+
+#rules-modal-content {
+  position: relative;
+  z-index: 1;
+  background: #2a2a2a;
+  border: 2px solid #555;
+  border-radius: 12px;
+  padding: 30px 24px 24px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 85vh;
+  max-height: 85dvh;
+  overflow-y: auto;
+  text-align: left;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.5);
+}
+
+#rules-modal-content h2 {
+  margin-top: 0;
+  text-align: center;
+}
+
+#rules-modal-content h3 {
+  color: #ffd54f;
+  margin-bottom: 4px;
+}
+
+#rules-modal-content p {
+  color: #ddd;
+  margin-top: 0;
+  line-height: 1.5;
+}
+
+#rules-modal-close-button {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  border: none;
+  color: white;
+  font-size: 16px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
 }

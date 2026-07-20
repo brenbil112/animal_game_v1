@@ -19,26 +19,42 @@
   </div>
 
   <div id="home-screen" class="screen hidden">
-    <h1>Animal Kingdom</h1>
-    <div class="user-bar">
-      <span class="welcome-message"></span>
-      <button class="logout-button">Log Out</button>
-    </div>
+    <header class="app-topbar">
+      <div class="app-topbar-title">
+        <span class="app-topbar-logo">🐾</span>
+        <h1>Animal Kingdom</h1>
+      </div>
+      <div class="app-topbar-actions">
+        <button class="tutorial-button">📖 Tutorial / Rules</button>
+        <div class="user-bar">
+          <span class="welcome-message"></span>
+          <button class="logout-button">Log Out</button>
+        </div>
+      </div>
+    </header>
 
     <div class="big-nav-buttons">
-      <button class="big-nav-button" id="home-wars-button">Active Wars</button>
-      <button class="big-nav-button" id="home-animals-button">Animals</button>
-      <button class="big-nav-button" disabled>Home City</button>
-      <button class="big-nav-button hidden" id="home-admin-button">Admin</button>
+      <button class="big-nav-button" id="home-wars-button"><span class="big-nav-icon">🗺️</span> Active Wars</button>
+      <button class="big-nav-button" id="home-animals-button"><span class="big-nav-icon">🐾</span> Animals</button>
+      <button class="big-nav-button" disabled><span class="big-nav-icon">🏙️</span> Home City</button>
+      <button class="big-nav-button hidden" id="home-admin-button"><span class="big-nav-icon">🛠️</span> Admin</button>
     </div>
   </div>
 
   <div id="admin-screen" class="screen hidden">
-    <h1>Admin</h1>
-    <div class="user-bar">
-      <span class="welcome-message"></span>
-      <button class="logout-button">Log Out</button>
-    </div>
+    <header class="app-topbar">
+      <div class="app-topbar-title">
+        <span class="app-topbar-logo">🛠️</span>
+        <h1>Admin</h1>
+      </div>
+      <div class="app-topbar-actions">
+        <button class="tutorial-button">📖 Tutorial / Rules</button>
+        <div class="user-bar">
+          <span class="welcome-message"></span>
+          <button class="logout-button">Log Out</button>
+        </div>
+      </div>
+    </header>
 
     <p id="war-status">No active war yet.</p>
 
@@ -52,16 +68,22 @@
   </div>
 
   <div id="section-screen" class="screen hidden">
-    <header id="section-header">
-      <h1 id="app-title">Animal Kingdom</h1>
+    <header id="section-header" class="app-topbar">
+      <div class="app-topbar-title">
+        <span class="app-topbar-logo">🐾</span>
+        <h1 id="app-title">Animal Kingdom</h1>
+      </div>
       <nav class="section-nav">
         <button class="section-nav-button" id="nav-wars-button">Wars</button>
         <button class="section-nav-button" id="nav-animals-button">Animals</button>
         <button class="section-nav-button" disabled>City</button>
       </nav>
-      <div class="user-bar">
-        <span class="welcome-message"></span>
-        <button class="logout-button">Log Out</button>
+      <div class="app-topbar-actions">
+        <button class="tutorial-button">📖 Tutorial / Rules</button>
+        <div class="user-bar">
+          <span class="welcome-message"></span>
+          <button class="logout-button">Log Out</button>
+        </div>
       </div>
     </header>
 
@@ -185,6 +207,35 @@
       <h3 id="info-popup-heading"></h3>
       <p id="info-popup-message"></p>
       <button id="info-popup-close-button" class="big-nav-button">OK</button>
+    </div>
+  </div>
+
+  <div id="rules-modal-overlay" class="hidden">
+    <div id="rules-modal-backdrop"></div>
+    <div id="rules-modal-content">
+      <button id="rules-modal-close-button" title="Close">✕</button>
+      <h2>Tutorial &amp; Rules</h2>
+
+      <h3>Animals &amp; Rarity</h3>
+      <p>Animals come in six rarity tiers — Common, Uncommon, Rare, Epic, Legendary, and Variant — plus a Class (Conscript, Scout, Ranger, Healer, Soldier, Tank) and three stats: Attack, Defense, and Healing. Rarer animals hit harder but are much tougher to find.</p>
+
+      <h3>Sightings &amp; Unlocking</h3>
+      <p>Log up to 3 sightings a day from the Animals tab. Spotting a species you haven't unlocked yet unlocks it permanently. Six starter species are unlocked for everyone from day one — everything else has to be found in the wild.</p>
+
+      <h3>Leveling Up</h3>
+      <p>Every sighting of a species counts toward its level (max level 5). Rarer animals level up in far fewer sightings than common ones. Each level-up grants a random boost split across Attack/Defense/Healing, capped by that animal's rarity — check the back of an animal's card to see its current stats and progress to the next level.</p>
+
+      <h3>Swarms</h3>
+      <p>Each player has 3 swarm slots, each holding up to 3 animals. A species can only sit in one swarm at a time. Once a swarm is pulled into a territory battle, it's locked and can't be edited until that battle ends.</p>
+
+      <h3>Hospital</h3>
+      <p>Animals defeated in a battle are sent to the Hospital and are unavailable for 72 hours before they've recovered enough to fight again.</p>
+
+      <h3>The War Map</h3>
+      <p>Each war is a grid with both players' 3 swarms starting on opposite edges. Turns alternate between players, with up to 24 hours to act before a turn auto-passes. Move a swarm into an enemy swarm to trigger a territory battle.</p>
+
+      <h3>Territory Battles</h3>
+      <p>Battles play out on their own tactical grid, one turn per side. On your turn, move each animal and choose one action: <strong>Attack</strong> an adjacent enemy, <strong>Ranged Attack</strong> a foe a few tiles away, <strong>Scout</strong> to reveal hidden tiles, or <strong>Set Ambush</strong> to strike the next enemy that wanders past (use <strong>End Ambush</strong> to stand down). A battle ends when one side has no animals left standing.</p>
     </div>
   </div>
 

@@ -753,6 +753,20 @@ function closeInfoPopup() {
 document.getElementById("info-popup-close-button").addEventListener("click", closeInfoPopup);
 document.getElementById("info-popup-backdrop").addEventListener("click", closeInfoPopup);
 
+// One Tutorial/Rules button per screen (same pattern as .logout-button and
+// .welcome-message) all open the same static rules content.
+function closeRulesModal() {
+  document.getElementById("rules-modal-overlay").classList.add("hidden");
+}
+
+document.querySelectorAll(".tutorial-button").forEach(function (button) {
+  button.addEventListener("click", function () {
+    document.getElementById("rules-modal-overlay").classList.remove("hidden");
+  });
+});
+document.getElementById("rules-modal-close-button").addEventListener("click", closeRulesModal);
+document.getElementById("rules-modal-backdrop").addEventListener("click", closeRulesModal);
+
 // Shared by normal attacks and ambush triggers: a weighted coin flip that
 // incapacitates the loser and sends them to their owner's hospital. Doesn't
 // show the popup itself — callers phrase the message differently (a normal
@@ -1573,6 +1587,7 @@ document.getElementById("card-close-button").addEventListener("click", closeAnim
 document.addEventListener("keydown", function (event) {
   if (event.key === "Escape") {
     closeAnimalCard();
+    closeRulesModal();
   }
 });
 
